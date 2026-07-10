@@ -17,10 +17,20 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python forward_combo.py
-      - run: |
+
+      - name: 每日訊號報告
+        run: python forward_combo.py
+
+      - name: 真模擬金帳戶 + 手機儀表板 + Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python paper_account.py
+
+      - name: 存回 repo
+        run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add combo_forward_log.csv
-          git diff --staged --quiet || git commit -m "組合前向 $(date -u +%Y-%m-%d)"
+          git add -A combo_forward_log.csv paper_log.csv paper_state.json index.html || true
+          git diff --staged --quiet || git commit -m "前向+模擬金 $(date -u +%Y-%m-%d)"
+          git pull --rebase --autostash || true
           git push
