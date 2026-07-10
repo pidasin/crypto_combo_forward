@@ -133,11 +133,16 @@ print(f"  幣安合約測試網 bot  |  日K {D.date()}  |  DRY_RUN={DRY_RUN}")
 print('='*66)
 
 # ---------------- 帳戶 & 交易所規則 ----------------
+def _dec(step_str):
+    """從 stepSize 字串('0.00100000')推出小數位數,避免浮點雜訊"""
+    s=step_str.rstrip('0')
+    return len(s.split('.')[1]) if '.' in s and s.split('.')[1] else 0
 info=public('/fapi/v1/exchangeInfo')
 filt={}
 for s in info['symbols']:
     f={x['filterType']:x for x in s['filters']}
-    filt[s['symbol']]=dict(step=float(f['LOT_SIZE']['stepSize']),
+    ss=f['LOT_SIZE']['stepSize']
+    filt[s['symbol']]=dict(step=float(ss), dec=_dec(ss),
                            minqty=float(f['LOT_SIZE']['minQty']),
                            minnot=float(f.get('MIN_NOTIONAL',{}).get('notional',5)))
 acct=signed('GET','/fapi/v2/account')
@@ -145,27 +150,29 @@ equity=float(acct['totalMarginBalance'])
 curpos={p['symbol']:float(p['positionAmt']) for p in acct['positions']}
 print(f"\n  測試網權益: {equity:,.2f} USDT")
 
-def rnd(q,step):
-    return float(np.floor(abs(q)/step)*step)*(1 if q>=0 else -1)
+def rnd(q,step,dec):
+    """無條件捨去到 step 的倍數, 並依 stepSize 的小數位數四捨五入掉浮點雜訊"""
+    v=round(np.floor(round(abs(q)/step,8))*step, dec)
+    return v*(1 if q>=0 else -1)
 
 orders=[]
-print(f"\n  {'幣':6}{'目標曝險':>10}{'目標數量':>14}{'現有':>14}{'需下單':>14}")
+print(f"\n  {'幣':<6}{'目標曝險':>10}{'目標數量':>16}{'現有':>14}{'需下單':>18}")
 for c in symbols:
     sym=c+'USDT'
     if sym not in filt: print(f"  {c}: 測試網無此合約, 跳過"); continue
+    st_,dc = filt[sym]['step'], filt[sym]['dec']
     px=float(public('/fapi/v1/ticker/price',{'symbol':sym})['price'])
-    tgt_notional = w[c]*equity
-    tgt_qty = rnd(tgt_notional/px, filt[sym]['step'])
+    tgt_qty = rnd(w[c]*equity/px, st_, dc)
     cur = curpos.get(sym,0.0)
     delta = tgt_qty-cur
     dnot = abs(delta)*px
     act = ''
     if dnot >= max(MIN_NOTIONAL_DELTA, filt[sym]['minnot']):
         side='BUY' if delta>0 else 'SELL'
-        qty=rnd(abs(delta),filt[sym]['step'])
+        qty=rnd(abs(delta),st_,dc)
         if qty>=filt[sym]['minqty']:
             orders.append((sym,side,qty)); act=f"{side} {qty}"
-    print(f"  {c:6}{w[c]*100:>9.2f}%{tgt_qty:>14.4f}{cur:>14.4f}{act:>14}")
+    print(f"  {c:<6}{w[c]*100:>9.2f}%{tgt_qty:>16.6g}{cur:>14.4f}{act:>18}")
 
 if not orders:
     print("\n  沒有需要調整的部位")
