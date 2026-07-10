@@ -247,12 +247,16 @@ print(f"  📱 手機儀表板已生成 index.html")
 
 # ================= Discord 推播 (只在有新K時) =================
 WEBHOOK=os.environ.get('DISCORD_WEBHOOK','')
-if WEBHOOK and todo:
+FORCE=os.environ.get('DISCORD_TEST','').lower()=='true'   # 手動測試推播用
+if WEBHOOK and (todo or FORCE):
     def emo(h): return '🟢' if h>=52 else '🟡' if h>=48 else '🔴'
-    lines=[f"**日K {d.date()}** · 第{st['ndays']}日",
+    lines=[]
+    if FORCE and not todo: lines.append("🧪 *(測試推播 — 今日無新日K)*")
+    lines+=[f"**日K {d.date()}** · 第{st['ndays']}日",
            f"💰 權益 **${st['equity']:,.2f}** ({ret_pct:+.2f}%)",
            f"{emo(hitA)} A引擎 {hitA:.1f}%　{emo(hitT)} 趨勢 {hitT:.1f}%",
-           f"📊 A腿淨曝險 {sum(st['wA'].values())*100:+.0f}% · 趨勢投入 {sum(st['wT'].values())*100:.0f}%"]
+           f"📊 A腿淨曝險 {sum(st['wA'].values())*100:+.0f}% · 趨勢投入 {sum(st['wT'].values())*100:.0f}%",
+           f"📱 <https://pidasin.github.io/crypto_combo_forward/>"]
     if hitA<48 or hitT<48: lines.append("⚠️ **有引擎跌破48% — 若連續兩月則減碼**")
     try:
         requests.post(WEBHOOK,json={'content':"\n".join(lines)},timeout=15)
