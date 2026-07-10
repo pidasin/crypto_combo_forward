@@ -1,0 +1,48 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>組合策略 模擬金</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0f17;color:#e5edf7;
+font-family:-apple-system,"Segoe UI","Microsoft JhengHei",sans-serif;padding:14px;max-width:560px;margin:0 auto}
+h1{font-size:15px;margin:0 0 2px;color:#8aa0b8;font-weight:600}
+.date{font-size:11px;color:#5f7590;margin-bottom:12px}
+.big{background:#131a26;border-radius:14px;padding:16px;margin-bottom:12px;text-align:center}
+.eq{font-size:34px;font-weight:700;letter-spacing:-1px}
+.rt{font-size:15px;font-weight:600;margin-top:2px}
+.card{background:#131a26;border-radius:14px;padding:14px;margin-bottom:12px}
+.ct{font-size:12px;color:#8aa0b8;margin-bottom:8px;font-weight:600}
+.hrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+.pill{padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600}
+.prow{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #1e2a3a}
+.prow:last-child{border:none}
+.wrap{position:relative;height:170px}
+.note{background:#2a2213;border-left:3px solid #f59e0b;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#e8dcc0;line-height:1.6}
+.foot{text-align:center;color:#5f7590;font-size:10.5px;margin-top:14px}
+</style></head><body>
+<h1>組合策略 · 真模擬金</h1>
+<div class="date">日K 2026-07-09 · 起算 2026-07-09 · 第 1 個交易日</div>
+<div class="big"><div class="eq">$9,994</div>
+ <div class="rt" style="color:#ef4444">-0.06%</div></div>
+<div class="card"><div class="ct">權益曲線</div><div class="wrap"><canvas id="c"></canvas></div></div>
+<div class="card"><div class="ct">健康度(90日命中率)</div>
+ <div class="hrow"><span>A引擎(CB溢價)</span><span class="pill" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e55">54.4% 綠燈</span></div>
+ <div class="hrow"><span>B引擎(SMA50趨勢)</span><span class="pill" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55">51.0% 黃燈</span></div></div>
+<div class="card"><div class="ct">今日淨部位</div><div class="prow"><span>BTC</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>ETH</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>SOL</span><b style="color:#22c55e">淨多 +10.4%</b></div><div class="prow"><span>LTC</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>LINK</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>ADA</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>DOGE</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>XLM</span><b style="color:#ef4444">淨空 -6.2%</b></div>
+ <div class="hrow" style="border-top:1px solid #1e2a3a;margin-top:6px;padding-top:8px">
+ <span>A腿淨曝險</span><b>-100%</b></div>
+ <div class="hrow"><span>趨勢腿投入</span><b>33%</b></div></div>
+<div class="card"><div class="ct">Forward Sharpe</div>
+ <div class="hrow"><span>估計值</span><b>樣本太少,還算不出</b></div></div>
+<div class="note"><b>別被短期數字騙:</b>慢性衰退要~3年才看得出,現在的Sharpe誤差巨大。紅綠燈連續兩月轉紅才是真警訊。押多少 &gt; 用什麼策略。</div>
+<div class="foot">自動更新 · 過去紀錄不可竄改</div>
+<script>
+const D={"l": ["2026-07-09"], "e": [9994.33], "d": [0.0]};
+new Chart(document.getElementById('c'),{type:'line',data:{labels:D.l,datasets:[
+{data:D.e,borderColor:'#22c55e',borderWidth:2,pointRadius:0,fill:true,backgroundColor:'rgba(34,197,94,.08)',tension:.2}]},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+tooltip:{callbacks:{label:c=>'$'+c.parsed.y.toFixed(0)}}},
+scales:{y:{grid:{color:'#1e2a3a'},ticks:{color:'#5f7590',font:{size:10}}},
+x:{grid:{display:false},ticks:{color:'#5f7590',font:{size:9},maxTicksLimit:5}}}}});
+</script></body></html>
