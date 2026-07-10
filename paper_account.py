@@ -20,6 +20,7 @@ A_COINS      = ['BTC','ETH','SOL','LTC','LINK','ADA','DOGE','XLM']
 T_COINS      = ['BTC','ETH','SOL']
 A_FEE, A_SLIP = 0.0005, 0.0005  # A: 手續費5bp + 滑價5bp = 10bp/單位換手
 T_FEE, T_SLIP = 0.0002, 0.0002  # 趨勢: 4bp/單位換手
+BAND = 0.0024                   # 無交易帶(占權益): 對齊 bot 的 MIN_NOTIONAL_DELTA 12U/5000U
 
 HERE  = os.path.dirname(os.path.abspath(__file__))
 STATE = os.path.join(HERE,'paper_state.json')
@@ -116,15 +117,26 @@ for d in todo:
         rA=sum(st['wA'].get(c,0.0)*AR.loc[d,c] for c in AP.columns if not np.isnan(AR.loc[d,c]))
         rT=sum(st['wT'].get(c,0.0)*TR.loc[d,c] for c in TP.columns if not np.isnan(TR.loc[d,c]))
         st['eqA']*= (1+rA); st['eqT']*= (1+rT)
-    # 2) 收盤看到今天訊號 -> 調倉到新目標 (付手續費+滑價)
+        # 1b) 【關鍵】權重會因價格漲跌而「漂移」, 不會自己留在原本的目標上。
+        #     舊版忘了這步 -> 低估換手與成本。bot 是拿當下權益重算目標, 這裡要對齊。
+        if (1+rA)!=0:
+            st['wA']={c: st['wA'].get(c,0.0)*(1+AR.loc[d,c])/(1+rA) for c in AP.columns}
+        if (1+rT)!=0:
+            st['wT']={c: st['wT'].get(c,0.0)*(1+TR.loc[d,c])/(1+rT) for c in TP.columns}
+    # 2) 收盤看到今天訊號 -> 從「漂移後的權重」調倉到新目標 (付手續費+滑價)
+    #    BAND = 無交易帶, 對齊 bot 的 MIN_NOTIONAL_DELTA(差額太小就不下單)
     nA=len(AP.columns); nT=len(TP.columns)
     tgtA={c: float(AP.loc[d,c])/nA for c in AP.columns}
     tgtT={c: float(TP.loc[d,c])/nT for c in TP.columns}
-    turnA=sum(abs(tgtA[c]-st['wA'].get(c,0.0)) for c in AP.columns)
-    turnT=sum(abs(tgtT[c]-st['wT'].get(c,0.0)) for c in TP.columns)
+    dA={c: (tgtA[c]-st['wA'].get(c,0.0)) for c in AP.columns}
+    dT={c: (tgtT[c]-st['wT'].get(c,0.0)) for c in TP.columns}
+    dA={c:(v if abs(v)>BAND else 0.0) for c,v in dA.items()}
+    dT={c:(v if abs(v)>BAND else 0.0) for c,v in dT.items()}
+    turnA=sum(abs(v) for v in dA.values()); turnT=sum(abs(v) for v in dT.values())
     st['eqA']-= st['eqA']*turnA*(A_FEE+A_SLIP)
     st['eqT']-= st['eqT']*turnT*(T_FEE+T_SLIP)
-    st['wA']=tgtA; st['wT']=tgtT
+    st['wA']={c: st['wA'].get(c,0.0)+dA[c] for c in AP.columns}
+    st['wT']={c: st['wT'].get(c,0.0)+dT[c] for c in TP.columns}
     # 3) 每日把兩腿資金再平衡回 50/50 (與回測一致)
     tot=st['eqA']+st['eqT']
     st['eqA']=tot*WA; st['eqT']=tot*(1-WA)
