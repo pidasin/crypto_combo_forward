@@ -116,8 +116,7 @@ if len(dates)==0: print("還沒有已收盤的日K"); raise SystemExit
 D=dates[-1]
 
 st = json.load(open(STATE,encoding='utf-8')) if os.path.exists(STATE) else {'last':None}
-if st.get('last')==str(D.date()):
-    print(f"日K {D.date()} 已調倉過, 略過 (正常去重)"); raise SystemExit
+already = (st.get('last')==str(D.date()))    # 這根K已調倉過? 先印現況再決定
 
 # ---------------- 計算淨額目標曝險 ----------------
 nA,nT=len(AP.columns),len(TP.columns)
@@ -147,8 +146,25 @@ for s in info['symbols']:
                            minnot=float(f.get('MIN_NOTIONAL',{}).get('notional',5)))
 acct=signed('GET','/fapi/v2/account')
 equity=float(acct['totalMarginBalance'])
+wallet=float(acct['totalWalletBalance'])
+upnl=float(acct['totalUnrealizedProfit'])
 curpos={p['symbol']:float(p['positionAmt']) for p in acct['positions']}
-print(f"\n  測試網權益: {equity:,.2f} USDT")
+print(f"\n  ── 帳戶現況 ──")
+print(f"  權益 {equity:,.2f} USDT   (錢包 {wallet:,.2f} + 未實現 {upnl:+,.2f})")
+open_p=[p for p in acct['positions'] if abs(float(p['positionAmt']))>0]
+if open_p:
+    print(f"\n  {'幣種':<10}{'數量':>14}{'進場價':>13}{'未實現U':>12}{'報酬%':>9}")
+    for p in sorted(open_p,key=lambda x:-abs(float(x['unrealizedProfit']))):
+        amt=float(p['positionAmt']); ep=float(p['entryPrice']); up=float(p['unrealizedProfit'])
+        notional=abs(amt)*ep
+        pct=(up/notional*100) if notional>0 else 0
+        print(f"  {p['symbol']:<10}{amt:>14.4f}{ep:>13.5g}{up:>+12.2f}{pct:>+8.2f}%")
+    tot=sum(abs(float(p['positionAmt']))*float(p['entryPrice']) for p in open_p)
+    print(f"  {'合計名目':<10}{tot:>14,.0f} USDT   未實現合計 {upnl:+,.2f} ({upnl/equity*100:+.2f}% of 權益)")
+else:
+    print("  (目前無持倉)")
+if already:
+    print(f"\n  日K {D.date()} 已調倉過, 不重複下單 (正常去重)"); raise SystemExit
 
 def rnd(q,step,dec):
     """無條件捨去到 step 的倍數, 並依 stepSize 的小數位數四捨五入掉浮點雜訊"""
