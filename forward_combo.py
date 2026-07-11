@@ -59,6 +59,9 @@ def pos_A(prem,fng):
     p[cbL&greed]=1.0; p[(~cbL)&greed]=-0.5; p[cbL&(~greed)]=0.5; p[(~cbL)&(~greed)]=-1.0
     return p
 
+# --- 收盤防護: 丟掉今天還沒收盤的那根日K (幣安日K以 UTC 00:00 收盤) ---
+TODAY = pd.Timestamp.utcnow().tz_localize(None).normalize()
+
 # --- FNG ---
 r=requests.get('https://api.alternative.me/fng/?limit=0&format=json',timeout=20).json()
 fng=pd.DataFrame(r['data']); fng['value']=fng['value'].astype(int)
@@ -73,6 +76,7 @@ for c in A_COINS:
     d=pd.DataFrame({'p':bn}).dropna()
     d['prem']=((cb.reindex(d.index,method='ffill')/d['p']-1)*10000).rolling(7).mean()
     d['fng']=fng.reindex(d.index.normalize()).fillna(50); d=d.dropna()
+    d=d[d.index<TODAY]
     ret=d['p'].pct_change().fillna(0); pos=pos_A(d['prem'],d['fng']); pl=pos.shift(1).fillna(0)
     A_rets[c]=ret*pl - pl.diff().abs().fillna(0)*0.001
     A_hit[c]=(np.sign(pl)==np.sign(ret)).astype(float)
@@ -84,6 +88,7 @@ T_rets={}; T_hit={}; T_sig=[]
 for c in T_COINS:
     px=fetch_bn(c+'USDT')
     if px is None: print(f"  T {c} 資料失敗跳過"); continue
+    px=px[px.index<TODAY]
     ma=px.rolling(50).mean(); pos=(px>ma).astype(float); pos.iloc[:50]=0
     ret=px.pct_change().fillna(0); pl=pos.shift(1).fillna(0)
     T_rets[c]=ret*pl - pl.diff().abs().fillna(0)*0.0004
