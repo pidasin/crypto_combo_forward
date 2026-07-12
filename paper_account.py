@@ -70,18 +70,20 @@ fng=pd.DataFrame(r['data']); fng['value']=fng['value'].astype(int)
 fng['date']=pd.to_datetime(fng['timestamp'].astype(int),unit='s').dt.normalize()
 fng=fng.sort_values('date').set_index('date')['value']
 
-Apos={}; Aret={}
+Apos={}; Aret={}; Apx={}   # Apx: 原始收盤價序列, 給「即時預覽」當基準價用
 for c in A_COINS:
     bn=fetch_bn(c+'USDT'); cb=fetch_cb(c+'-USD')
     if bn is None or cb is None: print(f"  A {c} 資料失敗"); continue
+    Apx[c]=bn
     d=pd.DataFrame({'p':bn}).dropna()
     d['prem']=((cb.reindex(d.index,method='ffill')/d['p']-1)*10000).rolling(7).mean()
     d['fng']=fng.reindex(d.index.normalize()).fillna(50); d=d.dropna()
     Apos[c]=pos_A(d['prem'],d['fng']); Aret[c]=d['p'].pct_change().fillna(0)
-Tpos={}; Tret={}
+Tpos={}; Tret={}; Tpx={}
 for c in T_COINS:
     px=fetch_bn(c+'USDT')
     if px is None: print(f"  T {c} 資料失敗"); continue
+    Tpx[c]=px
     ma=px.rolling(50).mean(); p=(px>ma).astype(float); p.iloc[:50]=0
     Tpos[c]=p; Tret[c]=px.pct_change().fillna(0)
 if not Apos or not Tpos: print("資料失敗, 結束"); raise SystemExit
@@ -161,6 +163,11 @@ for c in TP.columns:
     hT.append((np.sign(pl)==np.sign(TR[c])).where(nz).tail(90).mean()*100)
 hitT=np.nanmean(hT)
 d=dates[-1]
+# 【即時預覽用】記錄「最後鎖定那天」的收盤價當基準 — 手機端會拿現在的即時價
+# 對照這個基準價 + 上次鎖定的倉位權重, 現場算出「如果現在收盤大概是多少」。
+# 這個估計值不會寫進帳本, 純粹顯示用。
+refA={c: float(Apx[c].loc[d]) for c in AP.columns if c in Apx and d in Apx[c].index}
+refT={c: float(Tpx[c].loc[d]) for c in TP.columns if c in Tpx and d in Tpx[c].index}
 print('='*58)
 print(f"  真模擬金帳戶  |  日K {d.date()}  |  起算 {st['start']}  ({st['ndays']}個交易日)")
 print('='*58)
@@ -206,6 +213,9 @@ for c in AP.columns:
     lab='淨多' if net>0 else '淨空' if net<0 else '空手'
     prows+=f'<div class="prow"><span>{c}</span><b style="color:{col}">{lab} {net:+.1f}%</b></div>'
 J=json.dumps(dict(l=labs,e=eqs,d=dds),ensure_ascii=False)
+LIVE=json.dumps(dict(refA=refA,refT=refT,wA=st['wA'],wT=st['wT'],
+                      eqA=st['eqA'],eqT=st['eqT'],lockedEq=st['equity'],capital=CAPITAL),
+                 ensure_ascii=False)
 
 # ---- 新增①: 跟理論回測(combo_forward_log.csv)對照 ----
 theory_html=""
@@ -290,11 +300,21 @@ h1{{font-size:15px;margin:0 0 2px;color:#8aa0b8;font-weight:600}}
 .wrap{{position:relative;height:170px}}
 .note{{background:#2a2213;border-left:3px solid #f59e0b;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#e8dcc0;line-height:1.6}}
 .foot{{text-align:center;color:#5f7590;font-size:10.5px;margin-top:14px}}
+.live{{margin-top:12px;padding-top:10px;border-top:1px dashed #2a3a4f}}
+.live-lbl{{font-size:10.5px;color:#5f7590;margin-bottom:2px}}
+.live-eq{{font-size:17px;font-weight:600;color:#60a5fa}}
+.live-sub{{font-size:11px;color:#5f7590;margin-top:1px}}
 </style></head><body>
 <h1>組合策略 · 真模擬金</h1>
 <div class="date">日K {d.date()} · 起算 {st['start']} · 第 {st['ndays']} 個交易日</div>
 <div class="big"><div class="eq">${st['equity']:,.0f}</div>
- <div class="rt" style="color:{'#22c55e' if ret_pct>=0 else '#ef4444'}">{ret_pct:+.2f}%</div></div>
+ <div class="rt" style="color:{'#22c55e' if ret_pct>=0 else '#ef4444'}">{ret_pct:+.2f}%</div>
+ <div class="live">
+   <div class="live-lbl">⚡ 即時預覽(用現在市價估算,尚未收盤,不寫入帳本)</div>
+   <div class="live-eq" id="liveEq">讀取中…</div>
+   <div class="live-sub" id="liveDelta"></div>
+ </div>
+</div>
 <div class="card"><div class="ct">權益曲線</div><div class="wrap"><canvas id="c"></canvas></div></div>
 <div class="card"><div class="ct">健康度(90日命中率)</div>
  <div class="hrow"><span>A引擎(CB溢價)</span>{lchip(hitA)}</div>
@@ -318,6 +338,32 @@ options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:f
 tooltip:{{callbacks:{{label:c=>'$'+c.parsed.y.toFixed(0)}}}}}},
 scales:{{y:{{grid:{{color:'#1e2a3a'}},ticks:{{color:'#5f7590',font:{{size:10}}}}}},
 x:{{grid:{{display:false}},ticks:{{color:'#5f7590',font:{{size:9}},maxTicksLimit:5}}}}}}}}}});
+
+// ---- 即時預覽: 用瀏覽器直接打幣安公開行情(不需金鑰), 對照昨天鎖定的部位現場估算 ----
+const LIVE={LIVE};
+async function updateLive(){{
+  try{{
+    const syms=[...new Set([...Object.keys(LIVE.refA),...Object.keys(LIVE.refT)])];
+    const prices={{}};
+    await Promise.all(syms.map(async s=>{{
+      const r=await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${{s}}USDT`);
+      const j=await r.json();
+      prices[s]=parseFloat(j.price);
+    }}));
+    let rA=0; for(const c in LIVE.wA){{ if(LIVE.refA[c] && prices[c]) rA+=LIVE.wA[c]*(prices[c]/LIVE.refA[c]-1); }}
+    let rT=0; for(const c in LIVE.wT){{ if(LIVE.refT[c] && prices[c]) rT+=LIVE.wT[c]*(prices[c]/LIVE.refT[c]-1); }}
+    const liveEq=LIVE.eqA*(1+rA)+LIVE.eqT*(1+rT);
+    const delta=liveEq-LIVE.lockedEq, dpct=delta/LIVE.lockedEq*100;
+    document.getElementById('liveEq').textContent='$'+liveEq.toLocaleString(undefined,{{maximumFractionDigits:0}});
+    const el=document.getElementById('liveDelta');
+    el.textContent=(delta>=0?'+':'')+delta.toFixed(0)+' ('+(dpct>=0?'+':'')+dpct.toFixed(2)+'%) 較昨日鎖定值';
+    el.style.color=delta>=0?'#22c55e':'#ef4444';
+  }}catch(e){{
+    document.getElementById('liveEq').textContent='無法取得即時價(可能離線)';
+  }}
+}}
+updateLive();
+setInterval(updateLive,8000);
 </script></body></html>'''
 open(os.path.join(HERE,'index.html'),'w',encoding='utf-8').write(html)
 print(f"  📱 手機儀表板已生成 index.html")
