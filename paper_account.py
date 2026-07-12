@@ -247,6 +247,7 @@ if os.path.exists(BOT_STATE):
         if 'equity' in bs:
             b_eq=bs['equity']; b_wallet=bs.get('wallet',b_eq); b_upnl=bs.get('upnl',0)
             b_time=bs.get('snapshot_utc','?')
+            f_tot=bs.get('funding_total'); f_n=bs.get('funding_n',0)
             prows_bot=""
             for p in bs.get('positions',[]):
                 pcol='#22c55e' if p['upnl']>=0 else '#ef4444'
@@ -254,10 +255,17 @@ if os.path.exists(BOT_STATE):
                 prows_bot+=f'<div class="prow"><span>{sym} {p["qty"]:+.4g}</span><b style="color:{pcol}">{p["upnl"]:+.2f}U ({p["pct"]:+.1f}%)</b></div>'
             if not prows_bot:
                 prows_bot='<div class="prow"><span style="color:#5f7590">目前無持倉</span></div>'
+            funding_row=""
+            if f_tot is not None:
+                fcol='#22c55e' if f_tot>=0 else '#ef4444'
+                funding_row=(f'<div class="hrow" style="border-top:1px solid #1e2a3a;margin-top:6px;padding-top:8px">'
+                             f'<span>累積資金費(回測沒算)</span><b style="color:{fcol}">{f_tot:+.3f} USDT</b></div>'
+                             f'<div class="hrow"><span style="color:#5f7590;font-size:11px">{f_n}筆,起算{START_DATE}</span></div>')
             bot_html=f'''<div class="card"><div class="ct">幣安測試網 實際帳戶(快照 {b_time} UTC)</div>
  <div class="hrow"><span>權益</span><b>{b_eq:,.2f} USDT</b></div>
  <div class="hrow"><span>錢包 / 未實現</span><b>{b_wallet:,.2f} / {b_upnl:+,.2f}</b></div>
- {prows_bot}</div>'''
+ {prows_bot}
+ {funding_row}</div>'''
     except Exception as e:
         bot_html=""
 
