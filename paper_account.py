@@ -206,6 +206,68 @@ for c in AP.columns:
     lab='淨多' if net>0 else '淨空' if net<0 else '空手'
     prows+=f'<div class="prow"><span>{c}</span><b style="color:{col}">{lab} {net:+.1f}%</b></div>'
 J=json.dumps(dict(l=labs,e=eqs,d=dds),ensure_ascii=False)
+
+# ---- 新增①: 跟理論回測(combo_forward_log.csv)對照 ----
+theory_html=""
+CFL=os.path.join(HERE,'combo_forward_log.csv')
+if os.path.exists(CFL):
+    try:
+        cf=pd.read_csv(CFL,encoding='utf-8-sig')
+        if len(cf)>0:
+            last_theory=cf.iloc[-1]
+            t_val=float(last_theory['組合$'])
+            t_date=str(last_theory['日K基準'])
+            gap=st['equity']-t_val
+            gap_pct=(gap/t_val*100) if t_val else 0
+            gcol='#22c55e' if gap>=0 else '#ef4444'
+            theory_html=f'''<div class="card"><div class="ct">跟理論回測對照(日K {t_date})</div>
+ <div class="hrow"><span>真模擬金(含真實成本)</span><b>${st['equity']:,.0f}</b></div>
+ <div class="hrow"><span>理論回測(簡化成本模型)</span><b>${t_val:,.0f}</b></div>
+ <div class="hrow" style="border-top:1px solid #1e2a3a;margin-top:4px;padding-top:8px">
+ <span>差額</span><b style="color:{gcol}">{gap:+,.0f} ({gap_pct:+.2f}%)</b></div></div>'''
+    except Exception as e:
+        theory_html=""
+
+# ---- 新增②: 幣安測試網 實際帳戶(讀 bot_state.json 的快照, 可能落後一次執行) ----
+bot_html=""
+BOT_STATE=os.path.join(HERE,'bot_state.json')
+if os.path.exists(BOT_STATE):
+    try:
+        bs=json.load(open(BOT_STATE,encoding='utf-8'))
+        if 'equity' in bs:
+            b_eq=bs['equity']; b_wallet=bs.get('wallet',b_eq); b_upnl=bs.get('upnl',0)
+            b_time=bs.get('snapshot_utc','?')
+            prows_bot=""
+            for p in bs.get('positions',[]):
+                pcol='#22c55e' if p['upnl']>=0 else '#ef4444'
+                sym=p['symbol'].replace('USDT','')
+                prows_bot+=f'<div class="prow"><span>{sym} {p["qty"]:+.4g}</span><b style="color:{pcol}">{p["upnl"]:+.2f}U ({p["pct"]:+.1f}%)</b></div>'
+            if not prows_bot:
+                prows_bot='<div class="prow"><span style="color:#5f7590">目前無持倉</span></div>'
+            bot_html=f'''<div class="card"><div class="ct">幣安測試網 實際帳戶(快照 {b_time} UTC)</div>
+ <div class="hrow"><span>權益</span><b>{b_eq:,.2f} USDT</b></div>
+ <div class="hrow"><span>錢包 / 未實現</span><b>{b_wallet:,.2f} / {b_upnl:+,.2f}</b></div>
+ {prows_bot}</div>'''
+    except Exception as e:
+        bot_html=""
+
+# ---- 新增③: 最近逐筆交易紀錄(讀 orders_log.csv, 顯示最近10筆) ----
+trades_html=""
+ORDERS_LOG=os.path.join(HERE,'orders_log.csv')
+if os.path.exists(ORDERS_LOG):
+    try:
+        ol=pd.read_csv(ORDERS_LOG,encoding='utf-8-sig')
+        if len(ol)>0:
+            recent=ol.tail(10).iloc[::-1]
+            rows=""
+            for _,r_ in recent.iterrows():
+                side_col='#22c55e' if r_['方向']=='BUY' else '#ef4444'
+                sym=str(r_['幣種']).replace('USDT','')
+                rows+=(f'<div class="prow"><span>{r_["日K"]} {sym}</span>'
+                       f'<b style="color:{side_col}">{r_["方向"]} {r_["數量"]}　${r_["成交價"]:,.4g}</b></div>')
+            trades_html=f'<div class="card"><div class="ct">最近逐筆交易(近{len(recent)}筆)</div>{rows}</div>'
+    except Exception as e:
+        trades_html=""
 html=f'''<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -243,6 +305,9 @@ h1{{font-size:15px;margin:0 0 2px;color:#8aa0b8;font-weight:600}}
  <div class="hrow"><span>趨勢腿投入</span><b>{sum(st['wT'].values())*100:.0f}%</b></div></div>
 <div class="card"><div class="ct">Forward Sharpe</div>
  <div class="hrow"><span>估計值</span><b>{srtxt}</b></div></div>
+{theory_html}
+{bot_html}
+{trades_html}
 <div class="note"><b>別被短期數字騙:</b>慢性衰退要~3年才看得出,現在的Sharpe誤差巨大。紅綠燈連續兩月轉紅才是真警訊。押多少 &gt; 用什麼策略。</div>
 <div class="foot">自動更新 · 過去紀錄不可竄改</div>
 <script>
