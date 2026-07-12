@@ -20,15 +20,25 @@ h1{font-size:15px;margin:0 0 2px;color:#8aa0b8;font-weight:600}
 .wrap{position:relative;height:170px}
 .note{background:#2a2213;border-left:3px solid #f59e0b;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#e8dcc0;line-height:1.6}
 .foot{text-align:center;color:#5f7590;font-size:10.5px;margin-top:14px}
+.live{margin-top:12px;padding-top:10px;border-top:1px dashed #2a3a4f}
+.live-lbl{font-size:10.5px;color:#5f7590;margin-bottom:2px}
+.live-eq{font-size:17px;font-weight:600;color:#60a5fa}
+.live-sub{font-size:11px;color:#5f7590;margin-top:1px}
 </style></head><body>
 <h1>組合策略 · 真模擬金</h1>
 <div class="date">日K 2026-07-11 · 起算 2026-07-09 · 第 3 個交易日</div>
 <div class="big"><div class="eq">$9,920</div>
- <div class="rt" style="color:#ef4444">-0.80%</div></div>
+ <div class="rt" style="color:#ef4444">-0.80%</div>
+ <div class="live">
+   <div class="live-lbl">⚡ 即時預覽(用現在市價估算,尚未收盤,不寫入帳本)</div>
+   <div class="live-eq" id="liveEq">讀取中…</div>
+   <div class="live-sub" id="liveDelta"></div>
+ </div>
+</div>
 <div class="card"><div class="ct">權益曲線</div><div class="wrap"><canvas id="c"></canvas></div></div>
 <div class="card"><div class="ct">健康度(90日命中率)</div>
- <div class="hrow"><span>A引擎(CB溢價)</span><span class="pill" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e55">55.0% 綠燈</span></div>
- <div class="hrow"><span>B引擎(SMA50趨勢)</span><span class="pill" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55">51.1% 黃燈</span></div></div>
+ <div class="hrow"><span>A引擎(CB溢價)</span><span class="pill" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e55">55.1% 綠燈</span></div>
+ <div class="hrow"><span>B引擎(SMA50趨勢)</span><span class="pill" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55">50.2% 黃燈</span></div></div>
 <div class="card"><div class="ct">今日淨部位</div><div class="prow"><span>BTC</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>ETH</span><b style="color:#22c55e">淨多 +10.4%</b></div><div class="prow"><span>SOL</span><b style="color:#22c55e">淨多 +10.4%</b></div><div class="prow"><span>LTC</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>LINK</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>ADA</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>DOGE</span><b style="color:#ef4444">淨空 -6.2%</b></div><div class="prow"><span>XLM</span><b style="color:#ef4444">淨空 -6.2%</b></div>
  <div class="hrow" style="border-top:1px solid #1e2a3a;margin-top:6px;padding-top:8px">
  <span>A腿淨曝險</span><b>-99%</b></div>
@@ -40,10 +50,10 @@ h1{font-size:15px;margin:0 0 2px;color:#8aa0b8;font-weight:600}
  <div class="hrow"><span>理論回測(簡化成本模型)</span><b>$9,889</b></div>
  <div class="hrow" style="border-top:1px solid #1e2a3a;margin-top:4px;padding-top:8px">
  <span>差額</span><b style="color:#22c55e">+31 (+0.31%)</b></div></div>
-<div class="card"><div class="ct">幣安測試網 實際帳戶(快照 2026-07-12 09:35 UTC)</div>
- <div class="hrow"><span>權益</span><b>4,990.60 USDT</b></div>
- <div class="hrow"><span>錢包 / 未實現</span><b>4,995.63 / -5.03</b></div>
- <div class="prow"><span>SOL +6.6</span><b style="color:#ef4444">-15.64U (-3.0%)</b></div><div class="prow"><span>XLM -1652</span><b style="color:#22c55e">+5.09U (+1.6%)</b></div><div class="prow"><span>LINK -39.57</span><b style="color:#ef4444">-5.07U (-1.6%)</b></div><div class="prow"><span>DOGE -4224</span><b style="color:#22c55e">+4.63U (+1.5%)</b></div><div class="prow"><span>ADA -1878</span><b style="color:#22c55e">+4.32U (+1.4%)</b></div><div class="prow"><span>ETH +0.289</span><b style="color:#22c55e">+2.64U (+0.5%)</b></div><div class="prow"><span>LTC -7.047</span><b style="color:#ef4444">-0.92U (-0.3%)</b></div><div class="prow"><span>BTC -0.0048</span><b style="color:#ef4444">-0.08U (-0.0%)</b></div></div>
+<div class="card"><div class="ct">幣安測試網 實際帳戶(快照 2026-07-12 09:43 UTC)</div>
+ <div class="hrow"><span>權益</span><b>4,989.44 USDT</b></div>
+ <div class="hrow"><span>錢包 / 未實現</span><b>4,995.63 / -6.19</b></div>
+ <div class="prow"><span>SOL +6.6</span><b style="color:#ef4444">-14.26U (-2.7%)</b></div><div class="prow"><span>LINK -39.57</span><b style="color:#ef4444">-5.52U (-1.8%)</b></div><div class="prow"><span>XLM -1652</span><b style="color:#22c55e">+5.01U (+1.6%)</b></div><div class="prow"><span>DOGE -4224</span><b style="color:#22c55e">+3.84U (+1.2%)</b></div><div class="prow"><span>ETH +0.289</span><b style="color:#22c55e">+3.46U (+0.7%)</b></div><div class="prow"><span>ADA -1878</span><b style="color:#22c55e">+3.19U (+1.0%)</b></div><div class="prow"><span>LTC -7.047</span><b style="color:#ef4444">-1.41U (-0.5%)</b></div><div class="prow"><span>BTC -0.0048</span><b style="color:#ef4444">-0.51U (-0.2%)</b></div></div>
 
 <div class="note"><b>別被短期數字騙:</b>慢性衰退要~3年才看得出,現在的Sharpe誤差巨大。紅綠燈連續兩月轉紅才是真警訊。押多少 &gt; 用什麼策略。</div>
 <div class="foot">自動更新 · 過去紀錄不可竄改</div>
@@ -55,4 +65,30 @@ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:fals
 tooltip:{callbacks:{label:c=>'$'+c.parsed.y.toFixed(0)}}},
 scales:{y:{grid:{color:'#1e2a3a'},ticks:{color:'#5f7590',font:{size:10}}},
 x:{grid:{display:false},ticks:{color:'#5f7590',font:{size:9},maxTicksLimit:5}}}}});
+
+// ---- 即時預覽: 用瀏覽器直接打幣安公開行情(不需金鑰), 對照昨天鎖定的部位現場估算 ----
+const LIVE={"refA": {"BTC": 63819.0, "ETH": 1787.76, "SOL": 76.79, "LTC": 44.65, "LINK": 7.915, "ADA": 0.1658, "DOGE": 0.07321, "XLM": 0.1865}, "refT": {"BTC": 63819.0, "ETH": 1787.76, "SOL": 76.79}, "wA": {"BTC": -0.12313974616390691, "ETH": -0.12317473848751981, "SOL": -0.12396902984360371, "LTC": -0.12344162518927704, "LINK": -0.12294669385854474, "ADA": -0.1253820380207306, "DOGE": -0.125, "XLM": -0.125}, "wT": {"BTC": 0.0, "ETH": 0.33412210712656637, "SOL": 0.3333333333333333}, "eqA": 4959.986891256545, "eqT": 4959.986891256545, "lockedEq": 9919.97378251309, "capital": 10000.0};
+async function updateLive(){
+  try{
+    const syms=[...new Set([...Object.keys(LIVE.refA),...Object.keys(LIVE.refT)])];
+    const prices={};
+    await Promise.all(syms.map(async s=>{
+      const r=await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${s}USDT`);
+      const j=await r.json();
+      prices[s]=parseFloat(j.price);
+    }));
+    let rA=0; for(const c in LIVE.wA){ if(LIVE.refA[c] && prices[c]) rA+=LIVE.wA[c]*(prices[c]/LIVE.refA[c]-1); }
+    let rT=0; for(const c in LIVE.wT){ if(LIVE.refT[c] && prices[c]) rT+=LIVE.wT[c]*(prices[c]/LIVE.refT[c]-1); }
+    const liveEq=LIVE.eqA*(1+rA)+LIVE.eqT*(1+rT);
+    const delta=liveEq-LIVE.lockedEq, dpct=delta/LIVE.lockedEq*100;
+    document.getElementById('liveEq').textContent='$'+liveEq.toLocaleString(undefined,{maximumFractionDigits:0});
+    const el=document.getElementById('liveDelta');
+    el.textContent=(delta>=0?'+':'')+delta.toFixed(0)+' ('+(dpct>=0?'+':'')+dpct.toFixed(2)+'%) 較昨日鎖定值';
+    el.style.color=delta>=0?'#22c55e':'#ef4444';
+  }catch(e){
+    document.getElementById('liveEq').textContent='無法取得即時價(可能離線)';
+  }
+}
+updateLive();
+setInterval(updateLive,8000);
 </script></body></html>
