@@ -167,11 +167,32 @@ if open_p:
 else:
     print("  (目前無持倉)")
 
+# ---------------- 資金費率(Funding Fee) ----------------
+# 回測完全沒模擬這塊 — 永續合約每8小時(00/08/16 UTC)結算一次, 多空互付。
+# 抓「起算日以來」全部 FUNDING_FEE 紀錄加總, 這是回測沒算到的真實成本/收入。
+def fetch_funding_total(start_date):
+    start_ms=int(pd.Timestamp(start_date).timestamp()*1000)
+    total=0.0; n=0; cur=start_ms; now_ms=int(time.time()*1000)
+    while cur<now_ms:
+        try:
+            rows=signed('GET','/fapi/v1/income',{'incomeType':'FUNDING_FEE','startTime':cur,'limit':1000})
+        except Exception as e:
+            print(f"  資金費查詢失敗: {e}"); break
+        if not rows: break
+        for r_ in rows: total+=float(r_['income']); n+=1
+        if len(rows)<1000: break
+        cur=rows[-1]['time']+1
+    return total,n
+funding_total,funding_n=fetch_funding_total(START_DATE)
+print(f"\n  ── 資金費率(回測沒算到的真實成本/收入) ──")
+print(f"  累積 {funding_total:+.4f} USDT  ({funding_n} 筆, 起算 {START_DATE})")
+
 # 【新增】每次執行都把真實帳戶快照存進 bot_state.json (不影響 'last' 去重欄位),
 # 讓手機儀表板可以顯示「幣安實際帳戶」的最新數字, 跟 paper 模擬帳本並列對照。
 st['snapshot_utc']=pd.Timestamp.utcnow().strftime('%Y-%m-%d %H:%M')
 st['equity']=round(equity,2); st['wallet']=round(wallet,2); st['upnl']=round(upnl,2)
 st['positions']=positions_snapshot
+st['funding_total']=round(funding_total,4); st['funding_n']=funding_n
 json.dump(st,open(STATE,'w'),ensure_ascii=False)
 
 if already:
